@@ -186,20 +186,21 @@ Sign up, create a workspace, and you're in. For a populated demo workspace, run
 
 ### Environment variables
 
-| Variable                               | Required | Purpose                                                         |
-| -------------------------------------- | -------- | --------------------------------------------------------------- |
-| `NEXT_PUBLIC_APP_URL`                  | yes      | Public URL, used for links, canonical URLs and the sitemap      |
-| `DATABASE_URL`                         | yes      | Runtime Postgres connection (pooler in production)              |
-| `DIRECT_URL`                           | migrate  | Direct connection for Prisma migrations                         |
-| `NEXT_PUBLIC_FIREBASE_*`               | yes      | Firebase web app config                                         |
-| `NEXT_PUBLIC_SUPABASE_URL`             | uploads  | Supabase project URL                                            |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | uploads  | Publishable key                                                 |
-| `SUPABASE_SECRET_KEY`                  | advised  | Server-only key so the bucket stays closed to anonymous writes  |
-| `SUPABASE_STORAGE_BUCKET`              | no       | Defaults to `Operiq`                                            |
-| `RESEND_API_KEY`, `EMAIL_FROM`         | no       | Invitation emails; without them, invite links are shown to copy |
-| `UPSTASH_REDIS_REST_URL`, `_TOKEN`     | no       | Shared rate limiting; falls back to in-memory                   |
-| `NEXT_PUBLIC_AUTHOR_LINKEDIN_URL`      | no       | Overrides the LinkedIn link in the author credit                |
-| `LOG_LEVEL`                            | no       | `debug`, `info`, `warn` or `error`                              |
+| Variable                               | Required  | Purpose                                                         |
+| -------------------------------------- | --------- | --------------------------------------------------------------- |
+| `NEXT_PUBLIC_APP_URL`                  | local     | Public URL for links and SEO; on Vercel defaults to its domain  |
+| `DATABASE_URL`                         | yes       | Runtime Postgres connection (pooler in production)              |
+| `DIRECT_URL`                           | migrate   | Session connection for Prisma migrations                        |
+| `NEXT_PUBLIC_FIREBASE_*`               | yes       | Firebase web app config                                         |
+| `NEXT_PUBLIC_SUPABASE_URL`             | uploads   | Supabase project URL                                            |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | uploads   | Publishable key                                                 |
+| `SUPABASE_SECRET_KEY`                  | advised   | Server-only key so the bucket stays closed to anonymous writes  |
+| `SUPABASE_STORAGE_BUCKET`              | no        | Defaults to `Operiq`                                            |
+| `RESEND_API_KEY`, `EMAIL_FROM`         | no        | Invitation emails; without them, invite links are shown to copy |
+| `UPSTASH_REDIS_REST_URL`, `_TOKEN`     | no        | Shared rate limiting; falls back to in-memory                   |
+| `CRON_SECRET`                          | on Vercel | Authenticates the daily cleanup job                             |
+| `NEXT_PUBLIC_AUTHOR_LINKEDIN_URL`      | no        | Overrides the LinkedIn link in the author credit                |
+| `LOG_LEVEL`                            | no        | `debug`, `info`, `warn` or `error`                              |
 
 ## Testing
 
@@ -210,12 +211,12 @@ npm run test:e2e          # Playwright; starts the app automatically
 npm run lint && npm run typecheck
 ```
 
-| Suite       | What it covers                                                                                                                     |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Unit        | Permission matrix, member policy, Firebase token checks, slugs, uploads, rate limits, schemas, command intent, insights            |
-| Components  | Author credit, buttons, password field, form errors, empty states                                                                  |
-| Integration | Tenant isolation, invitations end to end, seat limits, owner protection, append-only audit log, sessions                           |
-| End to end  | Public pages and headers, auth redirects, full onboarding, command bar, invites, viewer read-only, cross-workspace 404, mobile nav |
+| Suite       | What it covers                                                                                                                              |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit        | Permission matrix, member policy, Firebase token checks, slugs, uploads, rate limits, schemas, command intent, insights, app URL, cron auth |
+| Components  | Author credit, buttons, password field, form errors, empty states                                                                           |
+| Integration | Tenant isolation, invitations end to end, seat limits, owner protection, append-only audit log, sessions, expired record cleanup            |
+| End to end  | Public pages and headers, auth redirects, full onboarding, command bar, invites, viewer read-only, cross-workspace 404, mobile nav          |
 
 End-to-end tests sign in by writing a session row directly, the same row a real sign-in creates,
 so they don't depend on Google and the app has no test-only login route.
@@ -233,6 +234,11 @@ The image uses Next.js standalone output, runs as a non-root user and includes a
 
 Vercel for the app, Supabase for Postgres and storage, Firebase for auth, Upstash for Redis.
 All have free tiers. Step-by-step guide: [docs/deployment.md](docs/deployment.md).
+
+The repository is ready to import into Vercel as is. `vercel.json` pins the functions to Mumbai
+(next to the Supabase database), production deploys apply pending migrations before building,
+`/api/health` reports database reachability for uptime monitors, and a daily cron clears expired
+sessions and invitations.
 
 ## Engineering decisions
 

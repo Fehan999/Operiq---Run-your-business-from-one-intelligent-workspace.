@@ -18,7 +18,7 @@ export default defineConfig([
   },
   {
     // Scripts and tests talk to the terminal on purpose.
-    files: ["prisma/**", "e2e/**", "tests/**"],
+    files: ["prisma/**", "e2e/**", "tests/**", "scripts/**"],
     rules: { "no-console": "off" },
   },
   globalIgnores([

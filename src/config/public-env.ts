@@ -2,8 +2,35 @@
  * Values that are safe to ship to the browser. Next inlines NEXT_PUBLIC_* at build time,
  * which only works when each variable is referenced literally like below.
  */
+
+interface AppUrlSources {
+  explicit?: string;
+  vercelEnv?: string;
+  vercelUrl?: string;
+  vercelProductionUrl?: string;
+}
+
+/**
+ * The public URL used for invite links, canonical URLs and the sitemap. An explicit
+ * NEXT_PUBLIC_APP_URL always wins; on Vercel we fall back to the deployment's own domain,
+ * so a first deploy works before the final domain is known.
+ */
+export function resolveAppUrl(sources: AppUrlSources): string {
+  const host =
+    sources.vercelEnv === "production"
+      ? (sources.vercelProductionUrl ?? sources.vercelUrl)
+      : sources.vercelUrl;
+  const url = sources.explicit || (host ? `https://${host}` : "http://localhost:3000");
+  return url.replace(/\/+$/, "");
+}
+
 export const publicEnv = {
-  appUrl: (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, ""),
+  appUrl: resolveAppUrl({
+    explicit: process.env.NEXT_PUBLIC_APP_URL,
+    vercelEnv: process.env.NEXT_PUBLIC_VERCEL_ENV,
+    vercelUrl: process.env.NEXT_PUBLIC_VERCEL_URL,
+    vercelProductionUrl: process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL,
+  }),
   firebase: {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?? "",
     authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ?? "",

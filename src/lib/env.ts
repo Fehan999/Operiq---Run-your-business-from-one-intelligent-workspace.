@@ -17,6 +17,8 @@ const serverEnvSchema = z.object({
   EMAIL_FROM: z.string().min(1).default("Operiq <onboarding@resend.dev>"),
   UPSTASH_REDIS_REST_URL: optionalString,
   UPSTASH_REDIS_REST_TOKEN: optionalString,
+  // Vercel sends this as a bearer token when it calls the scheduled cleanup route.
+  CRON_SECRET: optionalString,
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
 });
 

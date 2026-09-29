@@ -5,7 +5,12 @@ import { PrismaClient } from "@/generated/prisma/client";
 import { getServerEnv } from "@/lib/env";
 
 function createPrismaClient() {
-  const adapter = new PrismaPg({ connectionString: getServerEnv().DATABASE_URL });
+  const adapter = new PrismaPg({
+    connectionString: getServerEnv().DATABASE_URL,
+    // Serverless functions scale out to many instances, each with its own pool. Keeping
+    // each pool small stays well inside the connection limits of a hosted pooler.
+    max: process.env.VERCEL ? 5 : 10,
+  });
   return new PrismaClient({
     adapter,
     log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],

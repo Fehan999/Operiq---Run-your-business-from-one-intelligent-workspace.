@@ -2,8 +2,10 @@ import type { NextConfig } from "next";
 
 const isProduction = process.env.NODE_ENV === "production";
 // Only force HTTPS when the app is actually served over HTTPS, so `next start` on
-// localhost keeps working.
-const servesHttps = isProduction && (process.env.NEXT_PUBLIC_APP_URL ?? "").startsWith("https://");
+// localhost keeps working. Vercel always serves HTTPS.
+const servesHttps =
+  isProduction &&
+  (Boolean(process.env.VERCEL) || (process.env.NEXT_PUBLIC_APP_URL ?? "").startsWith("https://"));
 
 // A deliberately conservative CSP. Script sources are left open for now because Firebase
 // Auth loads Google scripts and frames at runtime; tightening that with nonces is on the
