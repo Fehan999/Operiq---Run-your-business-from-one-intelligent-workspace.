@@ -1,0 +1,37 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.*
+
+# next.js
+.next/
+out/
+next-env.d.ts
+
+# production
+build/
+dist/
+
+# generated prisma client
+src/generated/
+
+# testing
+coverage/
+playwright-report/
+test-results/
+blob-report/
+playwright/.cache/
+e2e/.auth/
+
+# env files
+.env
+.env*.local
+.env.test
+
+# misc
+.DS_Store
+*.pem
+*.log
+npm-debug.log*
+.vercel
+*.tsbuildinfo
