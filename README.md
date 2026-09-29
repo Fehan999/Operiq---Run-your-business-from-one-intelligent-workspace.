@@ -198,7 +198,7 @@ Sign up, create a workspace, and you're in. For a populated demo workspace, run
 | `SUPABASE_STORAGE_BUCKET`              | no       | Defaults to `Operiq`                                            |
 | `RESEND_API_KEY`, `EMAIL_FROM`         | no       | Invitation emails; without them, invite links are shown to copy |
 | `UPSTASH_REDIS_REST_URL`, `_TOKEN`     | no       | Shared rate limiting; falls back to in-memory                   |
-| `NEXT_PUBLIC_AUTHOR_LINKEDIN_URL`      | no       | Adds a LinkedIn link to the author credit                       |
+| `NEXT_PUBLIC_AUTHOR_LINKEDIN_URL`      | no       | Overrides the LinkedIn link in the author credit                |
 | `LOG_LEVEL`                            | no       | `debug`, `info`, `warn` or `error`                              |
 
 ## Testing
@@ -255,6 +255,7 @@ Designed and built by **Ehan Siddique**.
 
 - Website: [ehansiddique.com](https://ehansiddique.com)
 - GitHub: [@Fehan999](https://github.com/Fehan999)
+- LinkedIn: [Ehan Siddique](https://www.linkedin.com/in/ehan-siddique-0742aa34b/)
 
 ## License
 

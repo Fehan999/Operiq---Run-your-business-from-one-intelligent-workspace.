@@ -23,7 +23,7 @@ export const siteConfig = {
     role: "Full-stack engineer",
     website: "https://ehansiddique.com",
     github: "https://github.com/Fehan999",
-    linkedin: publicEnv.authorLinkedinUrl,
+    linkedin: publicEnv.authorLinkedinUrl ?? "https://www.linkedin.com/in/ehan-siddique-0742aa34b/",
   },
   repository:
     "https://github.com/Fehan999/Operiq---Run-your-business-from-one-intelligent-workspace.",
