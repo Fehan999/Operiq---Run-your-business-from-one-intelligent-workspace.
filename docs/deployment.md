@@ -84,6 +84,18 @@ domains**. Google sign-in fails with `auth/unauthorized-domain` until you do.
 Add it under Settings, Domains, then set `NEXT_PUBLIC_APP_URL` to it, add it to Firebase authorized
 domains, and redeploy.
 
+## Troubleshooting
+
+- **`P1000: Authentication failed` during the build.** The database password in `DIRECT_URL` is
+  wrong. Check that `[YOUR-PASSWORD]` was replaced (square brackets removed too), or reset the
+  password in Supabase, Project Settings, Database, and paste it into both `DATABASE_URL` and
+  `DIRECT_URL`. Environment variable changes only apply to new deployments, so redeploy afterwards.
+- **`Tenant or user not found`.** The username or host is wrong. Copy both strings again from
+  Supabase, Connect; the username has the form `postgres.<project-ref>`.
+- **`auth/unauthorized-domain` when signing in.** Add the domain to Firebase authorized domains.
+- **The build log says it runs in Washington (`iad1`).** That's expected: builds always run there.
+  The region in `vercel.json` only applies to the functions serving requests.
+
 ## Docker
 
 The `Dockerfile` builds Next.js standalone output into a small Node 22 Alpine image running as a
