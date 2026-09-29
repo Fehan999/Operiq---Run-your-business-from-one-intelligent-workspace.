@@ -1,0 +1,226 @@
+// Operiq database schema.
+//
+// Conventions:
+// - Tables and columns are snake_case in Postgres, camelCase in TypeScript.
+// - Every business record carries an organization_id. Queries are always scoped by it
+//   in the service layer, never by an id coming straight from the browser.
+// - Indexes follow the queries the app actually runs; see docs/database.md.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  MANAGER
+  MEMBER
+  VIEWER
+}
+
+enum Plan {
+  FREE
+  PRO
+  BUSINESS
+}
+
+enum CompanySize {
+  JUST_ME
+  SIZE_2_10
+  SIZE_11_50
+  SIZE_51_200
+  SIZE_201_PLUS
+}
+
+enum OnboardingStep {
+  BUSINESS
+  BRAND
+  GOALS
+  TEAM
+  COMPLETED
+}
+
+enum ActorType {
+  USER
+  SYSTEM
+  AI
+}
+
+model User {
+  id                 String    @id @default(cuid())
+  // Firebase is the identity provider, this links our user row to the Firebase account.
+  firebaseUid        String    @unique @map("firebase_uid")
+  email              String    @unique
+  name               String?
+  avatarUrl          String?   @map("avatar_url")
+  avatarPath         String?   @map("avatar_path")
+  emailVerifiedAt    DateTime? @map("email_verified_at")
+  // Only a hint for where to land after login. Membership is still checked on every request.
+  lastOrganizationId String?   @map("last_organization_id")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  lastOrganization Organization?        @relation("LastOrganization", fields: [lastOrganizationId], references: [id], onDelete: SetNull)
+  sessions         Session[]
+  memberships      OrganizationMember[]
+  invitationsSent  Invitation[]         @relation("InvitedBy")
+  auditLogs        AuditLog[]
+  activities       Activity[]
+  notifications    Notification[]
+
+  @@map("users")
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  // Only the SHA-256 of the cookie value is stored, a database leak does not leak sessions.
+  tokenHash  String   @unique @map("token_hash")
+  userId     String   @map("user_id")
+  expiresAt  DateTime @map("expires_at")
+  lastSeenAt DateTime @default(now()) @map("last_seen_at")
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model Organization {
+  id                    String         @id @default(cuid())
+  name                  String
+  slug                  String         @unique
+  logoUrl               String?        @map("logo_url")
+  logoPath              String?        @map("logo_path")
+  website               String?
+  industry              String?
+  companySize           CompanySize?   @map("company_size")
+  currency              String         @default("USD") @db.Char(3)
+  timezone              String         @default("UTC")
+  goals                 String[]       @default([])
+  plan                  Plan           @default(FREE)
+  onboardingStep        OnboardingStep @default(BUSINESS) @map("onboarding_step")
+  onboardingCompletedAt DateTime?      @map("onboarding_completed_at")
+  createdAt             DateTime       @default(now()) @map("created_at")
+  updatedAt             DateTime       @updatedAt @map("updated_at")
+
+  members       OrganizationMember[]
+  invitations   Invitation[]
+  auditLogs     AuditLog[]
+  activities    Activity[]
+  notifications Notification[]
+  lastActiveFor User[]               @relation("LastOrganization")
+
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id             String     @id @default(cuid())
+  organizationId String     @map("organization_id")
+  userId         String     @map("user_id")
+  role           MemberRole @default(MEMBER)
+  jobTitle       String?    @map("job_title")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+  @@index([organizationId, role])
+  @@map("organization_members")
+}
+
+model Invitation {
+  id             String     @id @default(cuid())
+  organizationId String     @map("organization_id")
+  email          String
+  role           MemberRole @default(MEMBER)
+  tokenHash      String     @unique @map("token_hash")
+  invitedById    String?    @map("invited_by_id")
+  expiresAt      DateTime   @map("expires_at")
+  acceptedAt     DateTime?  @map("accepted_at")
+  revokedAt      DateTime?  @map("revoked_at")
+  createdAt      DateTime   @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedBy    User?        @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, email])
+  @@index([email])
+  @@map("invitations")
+}
+
+// Security-oriented trail of who did what. A database trigger (see the init migration)
+// rejects updates and deletes, so rows can only be appended.
+model AuditLog {
+  id             String    @id @default(cuid())
+  organizationId String?   @map("organization_id")
+  actorId        String?   @map("actor_id")
+  actorType      ActorType @default(USER) @map("actor_type")
+  action         String
+  targetType     String?   @map("target_type")
+  targetId       String?   @map("target_id")
+  changes        Json?
+  metadata       Json?
+  ipAddress      String?   @map("ip_address")
+  userAgent      String?   @map("user_agent")
+  requestId      String?   @map("request_id")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actor        User?         @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt(sort: Desc)])
+  @@index([actorId, createdAt(sort: Desc)])
+  @@map("audit_logs")
+}
+
+// Product-facing timeline. Unlike the audit log this is meant to be read by the whole team
+// and will power customer, project and dashboard feeds.
+model Activity {
+  id             String   @id @default(cuid())
+  organizationId String   @map("organization_id")
+  actorId        String?  @map("actor_id")
+  type           String
+  entityType     String?  @map("entity_type")
+  entityId       String?  @map("entity_id")
+  data           Json     @default("{}")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actor        User?        @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt(sort: Desc)])
+  @@index([organizationId, entityType, entityId])
+  @@map("activities")
+}
+
+model Notification {
+  id             String    @id @default(cuid())
+  organizationId String    @map("organization_id")
+  recipientId    String    @map("recipient_id")
+  type           String
+  title          String
+  body           String?
+  link           String?
+  readAt         DateTime? @map("read_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  recipient    User         @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([recipientId, organizationId, readAt])
+  @@index([recipientId, organizationId, createdAt(sort: Desc)])
+  @@map("notifications")
+}
