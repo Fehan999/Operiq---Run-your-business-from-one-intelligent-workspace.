@@ -177,6 +177,7 @@ cd operiq
 npm install
 cp .env.example .env.local        # then fill in the values
 docker compose up -d              # optional: Postgres + Redis
+npm run db:check                  # optional: test both database connection strings
 npm run db:migrate                # create tables
 npm run dev                       # http://localhost:3000
 ```

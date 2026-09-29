@@ -86,6 +86,22 @@ domains, and redeploy.
 
 ## Troubleshooting
 
+Every production build prints what it received, with the password reduced to its length:
+
+```
+DIRECT_URL: user "postgres.<project-ref>", password of 16 characters, host aws-0-ap-south-1.pooler.supabase.com, port 5432, database postgres
+```
+
+To test the same values before deploying, put them in `.env.local` and run:
+
+```bash
+npm run db:check
+```
+
+It connects with both `DATABASE_URL` and `DIRECT_URL` and says what is wrong with each one
+(placeholder left in, brackets around the password, characters that need encoding, wrong password,
+wrong host) without printing the password.
+
 - **`P1000: Authentication failed` during the build.** The database password in `DIRECT_URL` is
   wrong. Check that `[YOUR-PASSWORD]` was replaced (square brackets removed too), or reset the
   password in Supabase, Project Settings, Database, and paste it into both `DATABASE_URL` and
