@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NEXT_TELEMETRY_DISABLED: 1
+  # Public, non-secret placeholders so the app builds and renders in CI.
+  NEXT_PUBLIC_APP_URL: http://localhost:3100
+  NEXT_PUBLIC_FIREBASE_API_KEY: ci-placeholder
+  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: operiq-ci.firebaseapp.com
+  NEXT_PUBLIC_FIREBASE_PROJECT_ID: operiq-ci
+  NEXT_PUBLIC_FIREBASE_APP_ID: ci-placeholder
+
+jobs:
+  checks:
+    name: Lint, types, unit tests and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  integration:
+    name: Integration tests (Postgres)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: operiq
+          POSTGRES_PASSWORD: operiq
+          POSTGRES_DB: operiq_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U operiq -d operiq_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://operiq:operiq@localhost:5432/operiq_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test:integration
+
+  e2e:
+    name: End-to-end tests (Playwright)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: operiq
+          POSTGRES_PASSWORD: operiq
+          POSTGRES_DB: operiq
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U operiq -d operiq"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://operiq:operiq@localhost:5432/operiq
+      DIRECT_URL: postgresql://operiq:operiq@localhost:5432/operiq
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx prisma migrate deploy
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 7
