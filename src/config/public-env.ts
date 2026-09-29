@@ -46,6 +46,15 @@ export const publicEnv = {
   authorLinkedinUrl: process.env.NEXT_PUBLIC_AUTHOR_LINKEDIN_URL || undefined,
 } as const;
 
-export const isFirebaseConfigured = Boolean(
-  publicEnv.firebase.apiKey && publicEnv.firebase.authDomain && publicEnv.firebase.projectId,
-);
+/** The Firebase variables sign-in can't work without that are currently empty. */
+export const missingFirebaseVariables = (
+  [
+    ["NEXT_PUBLIC_FIREBASE_API_KEY", publicEnv.firebase.apiKey],
+    ["NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN", publicEnv.firebase.authDomain],
+    ["NEXT_PUBLIC_FIREBASE_PROJECT_ID", publicEnv.firebase.projectId],
+  ] as const
+)
+  .filter(([, value]) => !value)
+  .map(([name]) => name);
+
+export const isFirebaseConfigured = missingFirebaseVariables.length === 0;

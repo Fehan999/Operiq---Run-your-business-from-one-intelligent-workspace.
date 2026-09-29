@@ -1,7 +1,7 @@
 import { CircleAlert } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { isFirebaseConfigured } from "@/config/public-env";
+import { isFirebaseConfigured, missingFirebaseVariables } from "@/config/public-env";
 
 export function AuthHeader({
   title,
@@ -19,7 +19,14 @@ export function AuthHeader({
           <CircleAlert />
           <AlertTitle>Authentication is not configured</AlertTitle>
           <AlertDescription>
-            Add the NEXT_PUBLIC_FIREBASE_* variables to your environment to enable sign-in.
+            <p>
+              Missing: <code className="break-all">{missingFirebaseVariables.join(", ")}</code>
+            </p>
+            <p>
+              Locally, add them to <code>.env.local</code> in the project root (next to{" "}
+              <code>package.json</code>) and restart <code>npm run dev</code>. On Vercel, add them
+              under Settings, Environment Variables and redeploy.
+            </p>
           </AlertDescription>
         </Alert>
       ) : null}
